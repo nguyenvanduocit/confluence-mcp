@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
 	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
 	"github.com/ctreminiom/go-atlassian/pkg/infra/models"
@@ -109,8 +108,6 @@ func confluencePageHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 		return nil, fmt.Errorf("page_id argument is required")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-	defer cancel()
 	content, response, err := client.Content.Get(ctx, pageID, []string{"body.storage"}, 1)
 	if err != nil {
 		if response != nil {
@@ -127,12 +124,14 @@ func confluencePageHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 	result := fmt.Sprintf(`
 Title: %s
 ID: %s
+Version: %d
 Type: %s
 Content:
 %s
 `,
 		content.Title,
 		content.ID,
+		content.Version.Number,
 		content.Type,
 		mdContent,
 	)
@@ -184,9 +183,6 @@ func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolReques
 		}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-	defer cancel()
-
 	// Create the page
 	newPage, response, err := client.Content.Create(ctx, payload)
 	if err != nil {
@@ -196,10 +192,10 @@ func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolReques
 		return nil, fmt.Errorf("failed to create page: %v", err)
 	}
 
-	result := fmt.Sprintf("Page created successfully!\nTitle: %s\nID: %s\nType: %s\nLink: %s",
+	result := fmt.Sprintf("Page created successfully!\nTitle: %s\nID: %s\nVersion: %d\nLink: %s",
 		newPage.Title,
 		newPage.ID,
-		newPage.Type,
+		newPage.Version.Number,
 		newPage.Links.Self,
 	)
 
@@ -215,10 +211,6 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 	if !ok {
 		return nil, fmt.Errorf("page_id argument is required")
 	}
-
-	// Get current page version
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
-	defer cancel()
 
 	currentPage, response, err := client.Content.Get(ctx, pageID, []string{"version"}, 1)
 	if err != nil {
