@@ -32,7 +32,7 @@ There are several ways to install the Script Tool:
 
 ### Option 2: Go install
 ```
-go install github.com/nguyenvanduocit/confluence-mcp
+go install github.com/nguyenvanduocit/confluence-mcp@latest
 ```
 
 ## Config
