@@ -35,6 +35,23 @@ There are several ways to install the Script Tool:
 go install github.com/nguyenvanduocit/confluence-mcp@latest
 ```
 
+### Option 3: Docker
+
+#### Using Docker directly
+1. Build the Docker image:
+   ```bash
+   docker build -t confluence-mcp .
+   ```
+   
+#### Environment Variables
+The following environment variables are required for authentication:
+```
+ATLASSIAN_HOST=your_confluence_host
+ATLASSIAN_EMAIL=your_email
+ATLASSIAN_TOKEN=your_token
+```
+You can set these directly in the Docker run command (recommended) or through a `.env` file (for local development).
+
 ## Config
 
 ### Environment
@@ -53,6 +70,27 @@ ATLASSIAN_TOKEN=your_token
     "script": {
       "command": "/path-to/script-mcp",
       "args": ["-env", "path-to-env-file"]
+    }
+  }
+}
+```
+
+### Example: Run with Docker in mcpServers config
+
+```
+{
+  "mcpServers": {
+    "confluence": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e", "ATLASSIAN_HOST=your_confluence_instance.atlassian.net",
+        "-e", "ATLASSIAN_EMAIL=your_email@example.com",
+        "-e", "ATLASSIAN_TOKEN=your_atlassian_api_token",
+        "confluence-mcp"
+      ]
     }
   }
 }
