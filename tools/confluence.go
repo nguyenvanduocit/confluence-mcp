@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
 	"github.com/ctreminiom/go-atlassian/pkg/infra/models"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -108,7 +107,9 @@ func confluencePageHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 		return nil, fmt.Errorf("page_id argument is required")
 	}
 
-	content, response, err := client.Content.Get(ctx, pageID, []string{"body.storage"}, 1)
+	// Request content with various expanded views
+	expandParams := []string{"body.storage", "body.view", "body"}
+	content, response, err := client.Content.Get(ctx, pageID, expandParams, 0)
 	if err != nil {
 		if response != nil {
 			return nil, fmt.Errorf("failed to get page: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)
@@ -116,9 +117,21 @@ func confluencePageHandler(ctx context.Context, request mcp.CallToolRequest) (*m
 		return nil, fmt.Errorf("failed to get page: %v", err)
 	}
 
-	mdContent, err := htmltomarkdown.ConvertString(content.Body.Storage.Value)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert HTML to Markdown: %v", err)
+	// Process content - use original HTML content
+	var htmlContent string
+	if content.Body == nil {
+		htmlContent = "Page body is nil - no content available"
+	} else if content.Body.Storage != nil && content.Body.Storage.Value != "" {
+		htmlContent = content.Body.Storage.Value
+	} else if content.Body.View != nil && content.Body.View.Value != "" {
+		htmlContent = content.Body.View.Value
+	} else {
+		htmlContent = "No content available in either storage or view format"
+	}
+
+	var versionNumber int
+	if content.Version != nil {
+		versionNumber = content.Version.Number
 	}
 
 	result := fmt.Sprintf(`
@@ -131,10 +144,87 @@ Content:
 `,
 		content.Title,
 		content.ID,
-		content.Version.Number,
+		versionNumber,
 		content.Type,
-		mdContent,
+		htmlContent,
 	)
+
+	// Get direct child pages
+	childPages, childResponse, err := client.Content.ChildrenDescendant.ChildrenByType(
+		ctx,
+		pageID,
+		"page",
+		0,
+		[]string{"title", "id", "version"},
+		0,
+		100,
+	)
+	
+	if err == nil && childResponse != nil && childPages != nil && len(childPages.Results) > 0 {
+		result += "\nDirect Child Pages:\n"
+		for _, childPage := range childPages.Results {
+			var childVersion int
+			if childPage.Version != nil {
+				childVersion = childPage.Version.Number
+			}
+			
+			result += fmt.Sprintf("- %s (ID: %s, Version: %d)\n", 
+				childPage.Title, 
+				childPage.ID, 
+				childVersion,
+			)
+		}
+	} else if err != nil {
+		result += fmt.Sprintf("\nError retrieving child pages: %v\n", err)
+	}
+	
+	// Get all descendants (pages at all levels)
+	descendants, descendantsResponse, err := client.Content.ChildrenDescendant.DescendantsByType(
+		ctx,
+		pageID,
+		"page",
+		"all",
+		[]string{"title", "id", "version"},
+		0,
+		100,
+	)
+	
+	if err == nil && descendantsResponse != nil && descendants != nil && len(descendants.Results) > 0 {
+		// Create a map to track direct children to avoid duplication
+		directChildren := make(map[string]bool)
+		if childPages != nil && len(childPages.Results) > 0 {
+			for _, child := range childPages.Results {
+				directChildren[child.ID] = true
+			}
+		}
+		
+		// Add only descendants that aren't direct children
+		var nonDirectDescendants []*models.ContentScheme
+		for _, descendant := range descendants.Results {
+			// Skip if it's a direct child (already displayed above)
+			if !directChildren[descendant.ID] {
+				nonDirectDescendants = append(nonDirectDescendants, descendant)
+			}
+		}
+		
+		if len(nonDirectDescendants) > 0 {
+			result += "\nAll Descendant Pages (including all levels):\n"
+			for _, descendant := range nonDirectDescendants {
+				var descendantVersion int
+				if descendant.Version != nil {
+					descendantVersion = descendant.Version.Number
+				}
+				
+				result += fmt.Sprintf("- %s (ID: %s, Version: %d)\n",
+					descendant.Title,
+					descendant.ID,
+					descendantVersion,
+				)
+			}
+		}
+	} else if err != nil {
+		result += fmt.Sprintf("\nError retrieving descendant pages: %v\n", err)
+	}
 
 	return mcp.NewToolResultText(result), nil
 }
@@ -192,11 +282,22 @@ func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolReques
 		return nil, fmt.Errorf("failed to create page: %v", err)
 	}
 
+	var versionNumber int
+	if newPage.Version != nil {
+		versionNumber = newPage.Version.Number
+	}
+
+	// Check if the Links field is nil
+	var selfLink string
+	if newPage.Links != nil {
+		selfLink = newPage.Links.Self
+	}
+
 	result := fmt.Sprintf("Page created successfully!\nTitle: %s\nID: %s\nVersion: %d\nLink: %s",
 		newPage.Title,
 		newPage.ID,
-		newPage.Version.Number,
-		newPage.Links.Self,
+		versionNumber,
+		selfLink,
 	)
 
 	return mcp.NewToolResultText(result), nil
@@ -212,7 +313,8 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 		return nil, fmt.Errorf("page_id argument is required")
 	}
 
-	currentPage, response, err := client.Content.Get(ctx, pageID, []string{"version"}, 1)
+	// Get the latest version of the page
+	currentPage, response, err := client.Content.Get(ctx, pageID, []string{"version"}, 0)
 	if err != nil {
 		if response != nil {
 			return nil, fmt.Errorf("failed to get current page: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)
@@ -225,9 +327,17 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 		ID:    pageID,
 		Type:  "page",
 		Title: currentPage.Title, // Keep existing title by default
-		Version: &models.ContentVersionScheme{
+	}
+	
+	// Safely handle version increment
+	if currentPage.Version != nil {
+		payload.Version = &models.ContentVersionScheme{
 			Number: currentPage.Version.Number + 1,
-		},
+		}
+	} else {
+		payload.Version = &models.ContentVersionScheme{
+			Number: 1, // Default to version 1 if no version info
+		}
 	}
 
 	// Handle optional title update
@@ -263,11 +373,22 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 		return nil, fmt.Errorf("failed to update page: %v", err)
 	}
 
+	var versionNumber int
+	if updatedPage.Version != nil {
+		versionNumber = updatedPage.Version.Number
+	}
+
+	// Check if the Links field is nil
+	var selfLink string
+	if updatedPage.Links != nil {
+		selfLink = updatedPage.Links.Self
+	}
+
 	result := fmt.Sprintf("Page updated successfully!\nTitle: %s\nID: %s\nVersion: %d\nLink: %s",
 		updatedPage.Title,
 		updatedPage.ID,
-		updatedPage.Version.Number,
-		updatedPage.Links.Self,
+		versionNumber,
+		selfLink,
 	)
 
 	return mcp.NewToolResultText(result), nil
