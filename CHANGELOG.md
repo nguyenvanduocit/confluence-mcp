@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.1.0...v1.2.0) (2025-04-17)
+
+
+### Features
+
+* **confluence:** split monolithic tool into modular Confluence tools\n\n- Remove tools/confluence.go\n- Add tools/confluence_search.go, tools/confluence_page.go, tools/confluence_create.go, tools/confluence_update.go\n- Update main.go to register new modular tools ([1010f91](https://github.com/nguyenvanduocit/confluence-mcp/commit/1010f910949983d5d981917fbccb035fe966f4ed))
+
 ## [1.1.0](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.0.0...v1.1.0) (2025-04-17)
 
 
