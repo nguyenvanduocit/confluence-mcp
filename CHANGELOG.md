@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.0.0...v1.1.0) (2025-04-17)
+
+
+### Features
+
+* **docker:** add Dockerfile and update README for Docker usage\n\n- Add Dockerfile for containerized builds\n- Update README with Docker instructions and environment variable usage\n- Improve main.go to check required envs for Docker/production ([bceff46](https://github.com/nguyenvanduocit/confluence-mcp/commit/bceff46e1c4b7a99e5f61ce15e299b9f6f3984b6))
+
 ## 1.0.0 (2025-03-25)
 
 
