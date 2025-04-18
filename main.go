@@ -49,7 +49,7 @@ func main() {
 	tools.RegisterGetPageTool(mcpServer)
 	tools.RegisterCreatePageTool(mcpServer)
 	tools.RegisterUpdatePageTool(mcpServer)
-
+	tools.RegisterGetCommentsPageTool(mcpServer)
 	if *ssePort != "" {
 		sseServer := server.NewSSEServer(mcpServer)
 		if err := sseServer.Start(fmt.Sprintf(":%s", *ssePort)); err != nil {
