@@ -38,7 +38,12 @@ go install github.com/nguyenvanduocit/confluence-mcp@latest
 ### Option 3: Docker
 
 #### Using Docker directly
-1. Build the Docker image:
+1. Pull the pre-built image from GitHub Container Registry:
+   ```bash
+   docker pull ghcr.io/nguyenvanduocit/confluence-mcp:latest
+   ```
+
+2. Or build the Docker image locally:
    ```bash
    docker build -t confluence-mcp .
    ```
@@ -89,7 +94,7 @@ ATLASSIAN_TOKEN=your_token
         "-e", "ATLASSIAN_HOST=your_confluence_instance.atlassian.net",
         "-e", "ATLASSIAN_EMAIL=your_email@example.com",
         "-e", "ATLASSIAN_TOKEN=your_atlassian_api_token",
-        "confluence-mcp"
+        "ghcr.io/nguyenvanduocit/confluence-mcp:latest"
       ]
     }
   }
