@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.3.0...v1.4.0) (2025-04-18)
+
+
+### Features
+
+* **api:** add Confluence page comments functionality ([36f7e83](https://github.com/nguyenvanduocit/confluence-mcp/commit/36f7e83cdc959983d39e53350f3af0669416fa29))
+* **docker:** add GitHub Container Registry support ([9f3a094](https://github.com/nguyenvanduocit/confluence-mcp/commit/9f3a094bcc714bcb1b3182d9aeb26ded6c9c4344))
+
 ## [1.3.0](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.2.0...v1.3.0) (2025-04-17)
 
 
