@@ -85,8 +85,8 @@ func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolReques
 	return mcp.NewToolResultText(result), nil
 }
 
-func RegisterConfluenceCreatePageTool(s *server.MCPServer) {
-	createPageTool := mcp.NewTool("confluence_create_page",
+func RegisterCreatePageTool(s *server.MCPServer) {
+	createPageTool := mcp.NewTool("create_page",
 		mcp.WithDescription("Create a new Confluence page"),
 		mcp.WithString("space_key", mcp.Required(), mcp.Description("The key of the space where the page will be created")),
 		mcp.WithString("title", mcp.Required(), mcp.Description("Title of the page")),

@@ -58,9 +58,9 @@ Body:
 	return mcp.NewToolResultText(results), nil
 }
 
-func RegisterConfluenceSearchTool(s *server.MCPServer) {
-	tool := mcp.NewTool("confluence_search",
-		mcp.WithDescription("Search Confluence"),
+func RegisterSearchPageTool(s *server.MCPServer) {
+	tool := mcp.NewTool("search_page",
+		mcp.WithDescription("Search pages in Confluence"),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Atlassian Confluence Query Language (CQL)")),
 	)
 	s.AddTool(tool, confluenceSearchHandler)

@@ -103,8 +103,8 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 	return mcp.NewToolResultText(result), nil
 }
 
-func RegisterConfluenceUpdatePageTool(s *server.MCPServer) {
-	updatePageTool := mcp.NewTool("confluence_update_page",
+func RegisterUpdatePageTool(s *server.MCPServer) {
+	updatePageTool := mcp.NewTool("update_page",
 		mcp.WithDescription("Update an existing Confluence page"),
 		mcp.WithString("page_id", mcp.Required(), mcp.Description("ID of the page to update")),
 		mcp.WithString("title", mcp.Description("New title of the page (optional)")),
