@@ -44,11 +44,11 @@ func main() {
 		server.WithResourceCapabilities(true, true),
 	)
 
-	// Register Confluence tool
-	tools.RegisterConfluenceSearchTool(mcpServer)
-	tools.RegisterConfluencePageTool(mcpServer)
-	tools.RegisterConfluenceCreatePageTool(mcpServer)
-	tools.RegisterConfluenceUpdatePageTool(mcpServer)
+	// Register Confluence tools
+	tools.RegisterSearchPageTool(mcpServer)
+	tools.RegisterGetPageTool(mcpServer)
+	tools.RegisterCreatePageTool(mcpServer)
+	tools.RegisterUpdatePageTool(mcpServer)
 
 	if *ssePort != "" {
 		sseServer := server.NewSSEServer(mcpServer)

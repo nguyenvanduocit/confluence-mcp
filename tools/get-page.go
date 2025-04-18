@@ -11,7 +11,7 @@ import (
 	"github.com/nguyenvanduocit/confluence-mcp/util"
 )
 
-func confluencePageHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func confluenceGetPageHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client := services.ConfluenceClient()
 
 	// Get page ID from arguments
@@ -138,10 +138,10 @@ Content:
 	return mcp.NewToolResultText(result), nil
 }
 
-func RegisterConfluencePageTool(s *server.MCPServer) {
-	pageTool := mcp.NewTool("confluence_get_page",
+func RegisterGetPageTool(s *server.MCPServer) {
+	pageTool := mcp.NewTool("get_page",
 		mcp.WithDescription("Get Confluence page content"),
 		mcp.WithString("page_id", mcp.Required(), mcp.Description("Confluence page ID")),
 	)
-	s.AddTool(pageTool, util.ErrorGuard(confluencePageHandler))
+	s.AddTool(pageTool, util.ErrorGuard(confluenceGetPageHandler))
 } 
