@@ -1,6 +1,8 @@
 # Confluence MCP
 
-A tool for interacting with Confluence API through MCP.
+A Go-based Model Context Protocol (MCP) server for integrating AI assistants with Atlassian Confluence. This tool provides a seamless interface for interacting with the Confluence API through the standardized MCP, enabling AI models to search, retrieve, create, and update Confluence content.
+
+![](/assets//thumbnail.webp)
 
 ## Features
 
