@@ -46,10 +46,13 @@ func main() {
 
 	// Register Confluence tools
 	tools.RegisterSearchPageTool(mcpServer)
+	tools.RegisterSearchSpaceTool(mcpServer)
+	tools.RegisterListSpacesTool(mcpServer)
 	tools.RegisterGetPageTool(mcpServer)
 	tools.RegisterCreatePageTool(mcpServer)
 	tools.RegisterUpdatePageTool(mcpServer)
 	tools.RegisterGetCommentsPageTool(mcpServer)
+	tools.RegisterCreateCommentTool(mcpServer)
 	if *ssePort != "" {
 		sseServer := server.NewSSEServer(mcpServer)
 		if err := sseServer.Start(fmt.Sprintf(":%s", *ssePort)); err != nil {
