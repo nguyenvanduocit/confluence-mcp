@@ -20,7 +20,6 @@ func loadAtlassianCredentials() (host, mail, token string) {
 
 	return host, mail, token
 }
-
 var ConfluenceClient = sync.OnceValue[*confluence.Client](func() *confluence.Client {
 	host, mail, token := loadAtlassianCredentials()
 
@@ -33,3 +32,4 @@ var ConfluenceClient = sync.OnceValue[*confluence.Client](func() *confluence.Cli
 
 	return instance
 })
+

@@ -9,30 +9,43 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/confluence-mcp/services"
+	"gopkg.in/yaml.v3"
 )
 
+// UpdatePageInput defines the input parameters for updating a Confluence page
+type UpdatePageInput struct {
+	PageID        string `json:"page_id" validate:"required"`
+	Title         string `json:"title,omitempty"`
+	Content       string `json:"content,omitempty"`
+	VersionNumber string `json:"version_number,omitempty"`
+}
+
+// UpdatePageOutput defines the output structure for page update results
+type UpdatePageOutput struct {
+	Success bool   `json:"success"`
+	Title   string `json:"title"`
+	ID      string `json:"id"`
+	Version int    `json:"version"`
+	Link    string `json:"link"`
+	Message string `json:"message"`
+}
+
 // confluenceUpdatePageHandler handles updating existing Confluence pages
-func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolRequest, input UpdatePageInput) (*mcp.CallToolResult, error) {
 	client := services.ConfluenceClient()
 
-	// Extract required arguments
-	pageID, err := request.RequireString("page_id")
-	if err != nil {
-		return nil, err
-	}
-
 	// Get the latest version of the page
-	currentPage, response, err := client.Content.Get(ctx, pageID, []string{"version"}, 0)
+	currentPage, response, err := client.Content.Get(ctx, input.PageID, []string{"version"}, 0)
 	if err != nil {
 		if response != nil {
-			return nil, fmt.Errorf("failed to get current page: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get current page: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)), nil
 		}
-		return nil, fmt.Errorf("failed to get current page: %v", err)
+		return mcp.NewToolResultError(fmt.Sprintf("failed to get current page: %v", err)), nil
 	}
 
 	// Create update payload
 	payload := &models.ContentScheme{
-		ID:    pageID,
+		ID:    input.PageID,
 		Type:  "page",
 		Title: currentPage.Title, // Keep existing title by default
 	}
@@ -49,36 +62,36 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 	}
 
 	// Handle optional title update
-	if title := request.GetString("title", ""); title != "" {
-		payload.Title = title
+	if input.Title != "" {
+		payload.Title = input.Title
 	}
 
 	// Handle content update
-	if content := request.GetString("content", ""); content != "" {
+	if input.Content != "" {
 		payload.Body = &models.BodyScheme{
 			Storage: &models.BodyNodeScheme{
-				Value:          content,
+				Value:          input.Content,
 				Representation: "storage",
 			},
 		}
 	}
 
 	// Handle version number override
-	if versionStr := request.GetString("version_number", ""); versionStr != "" {
-		version, err := strconv.Atoi(versionStr)
+	if input.VersionNumber != "" {
+		version, err := strconv.Atoi(input.VersionNumber)
 		if err != nil {
-			return nil, fmt.Errorf("invalid version_number: %v", err)
+			return mcp.NewToolResultError(fmt.Sprintf("invalid version_number: %v", err)), nil
 		}
 		payload.Version.Number = version
 	}
 
 	// Update the page
-	updatedPage, response, err := client.Content.Update(ctx, pageID, payload)
+	updatedPage, response, err := client.Content.Update(ctx, input.PageID, payload)
 	if err != nil {
 		if response != nil {
-			return nil, fmt.Errorf("failed to update page: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to update page: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)), nil
 		}
-		return nil, fmt.Errorf("failed to update page: %v", err)
+		return mcp.NewToolResultError(fmt.Sprintf("failed to update page: %v", err)), nil
 	}
 
 	var versionNumber int
@@ -92,14 +105,27 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 		selfLink = updatedPage.Links.Self
 	}
 
-	result := fmt.Sprintf("Page updated successfully!\nTitle: %s\nID: %s\nVersion: %d\nLink: %s",
-		updatedPage.Title,
-		updatedPage.ID,
-		versionNumber,
-		selfLink,
-	)
+	output := UpdatePageOutput{
+		Success: true,
+		Title:   updatedPage.Title,
+		ID:      updatedPage.ID,
+		Version: versionNumber,
+		Link:    selfLink,
+		Message: fmt.Sprintf("Page updated successfully!\nTitle: %s\nID: %s\nVersion: %d\nLink: %s",
+			updatedPage.Title,
+			updatedPage.ID,
+			versionNumber,
+			selfLink,
+		),
+	}
 
-	return mcp.NewToolResultText(result), nil
+	// Marshal to YAML
+	responseText, err := yaml.Marshal(output)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
+	}
+
+	return mcp.NewToolResultText(string(responseText)), nil
 }
 
 func RegisterUpdatePageTool(s *server.MCPServer) {
@@ -110,5 +136,5 @@ func RegisterUpdatePageTool(s *server.MCPServer) {
 		mcp.WithString("content", mcp.Description("New content of the page in storage format (XHTML)")),
 		mcp.WithString("version_number", mcp.Description("Version number for optimistic locking (optional)")),
 	)
-	s.AddTool(updatePageTool, confluenceUpdatePageHandler)
+	s.AddTool(updatePageTool, mcp.NewTypedToolHandler(confluenceUpdatePageHandler))
 } 

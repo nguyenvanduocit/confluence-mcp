@@ -8,54 +8,79 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/confluence-mcp/services"
+	"gopkg.in/yaml.v3"
 )
 
+// SearchPageInput defines the input parameters for searching Confluence pages
+type SearchPageInput struct {
+	Query string `json:"query" validate:"required"`
+}
+
+// SearchPageOutput defines the output structure for search results
+type SearchPageOutput struct {
+	Query       string       `json:"query"`
+	Results     []SearchResult `json:"results"`
+	ResultCount int          `json:"result_count"`
+	Message     string       `json:"message"`
+}
+
+// SearchResult represents a single search result
+type SearchResult struct {
+	Title        string `json:"title"`
+	ID           string `json:"id"`
+	Type         string `json:"type"`
+	Link         string `json:"link"`
+	LastModified string `json:"last_modified"`
+	Excerpt      string `json:"excerpt"`
+}
+
 // confluenceSearchHandler is a handler for the confluence search tool
-func confluenceSearchHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func confluenceSearchHandler(ctx context.Context, request mcp.CallToolRequest, input SearchPageInput) (*mcp.CallToolResult, error) {
 	client := services.ConfluenceClient()
 
-	// Get search query from arguments
-	query, err := request.RequireString("query")
-	if err != nil {
-		return nil, err
-	}
 	options := &models.SearchContentOptions{
 		Limit: 5,
 	}
 
-	var results string
-
-	contents, response, err := client.Search.Content(ctx, query, options)
+	contents, response, err := client.Search.Content(ctx, input.Query, options)
 	if err != nil {
 		if response != nil {
-			return nil, fmt.Errorf("search failed: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)
+			return mcp.NewToolResultError(fmt.Sprintf("search failed: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)), nil
 		}
-
-		return nil, fmt.Errorf("search failed: %v", err)
+		return mcp.NewToolResultError(fmt.Sprintf("search failed: %v", err)), nil
 	}
 
-	// Convert results to map format
-	for _, content := range contents.Results {
-		results += fmt.Sprintf(`
-Title: %s
-ID: %s 
-Type: %s
-Link: %s
-Last Modified: %s
-Body:
-%s
-----------------------------------------
-`,
-			content.Content.Title,
-			content.Content.ID,
-			content.Content.Type,
-			content.Content.Links.Self,
-			content.LastModified,
-			content.Excerpt,
-		)
+	output := SearchPageOutput{
+		Query:       input.Query,
+		Results:     make([]SearchResult, 0, len(contents.Results)),
+		ResultCount: len(contents.Results),
 	}
 
-	return mcp.NewToolResultText(results), nil
+	if len(contents.Results) == 0 {
+		output.Message = "No results found for the search query"
+	} else {
+		// Convert results to structured format
+		for _, content := range contents.Results {
+			result := SearchResult{
+				Title:        content.Content.Title,
+				ID:           content.Content.ID,
+				Type:         content.Content.Type,
+				Link:         content.Content.Links.Self,
+				LastModified: content.LastModified,
+				Excerpt:      content.Excerpt,
+			}
+			output.Results = append(output.Results, result)
+		}
+		output.Message = fmt.Sprintf("Found %d results for query: %s", len(contents.Results), input.Query)
+	}
+
+	// Marshal to YAML
+	responseText, err := yaml.Marshal(output)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
+	}
+
+	return mcp.NewToolResultText(string(responseText)), nil
 }
 
 func RegisterSearchPageTool(s *server.MCPServer) {
@@ -63,5 +88,5 @@ func RegisterSearchPageTool(s *server.MCPServer) {
 		mcp.WithDescription("Search pages in Confluence"),
 		mcp.WithString("query", mcp.Required(), mcp.Description("Atlassian Confluence Query Language (CQL)")),
 	)
-	s.AddTool(tool, confluenceSearchHandler)
+	s.AddTool(tool, mcp.NewTypedToolHandler(confluenceSearchHandler))
 } 
