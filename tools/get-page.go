@@ -8,16 +8,15 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/confluence-mcp/services"
-	"github.com/nguyenvanduocit/confluence-mcp/util"
 )
 
 func confluenceGetPageHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 	client := services.ConfluenceClient()
 
 	// Get page ID from arguments
-	pageID, ok := request.Params.Arguments["page_id"].(string)
-	if !ok {
-		return nil, fmt.Errorf("page_id argument is required")
+	pageID, err := request.RequireString("page_id")
+	if err != nil {
+		return nil, err
 	}
 
 	// Request content with various expanded views
@@ -143,5 +142,5 @@ func RegisterGetPageTool(s *server.MCPServer) {
 		mcp.WithDescription("Get Confluence page content"),
 		mcp.WithString("page_id", mcp.Required(), mcp.Description("Confluence page ID")),
 	)
-	s.AddTool(pageTool, util.ErrorGuard(confluenceGetPageHandler))
+	s.AddTool(pageTool, confluenceGetPageHandler)
 } 

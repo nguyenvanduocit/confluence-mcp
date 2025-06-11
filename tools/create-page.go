@@ -8,7 +8,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/confluence-mcp/services"
-	"github.com/nguyenvanduocit/confluence-mcp/util"
 )
 
 // confluenceCreatePageHandler handles the creation of new Confluence pages
@@ -16,19 +15,19 @@ func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolReques
 	client := services.ConfluenceClient()
 
 	// Extract required arguments
-	spaceKey, ok := request.Params.Arguments["space_key"].(string)
-	if !ok {
-		return nil, fmt.Errorf("space_key argument is required")
+	spaceKey, err := request.RequireString("space_key")
+	if err != nil {
+		return nil, err
 	}
 
-	title, ok := request.Params.Arguments["title"].(string)
-	if !ok {
-		return nil, fmt.Errorf("title argument is required")
+	title, err := request.RequireString("title")
+	if err != nil {
+		return nil, err
 	}
 
-	content, ok := request.Params.Arguments["content"].(string)
-	if !ok {
-		return nil, fmt.Errorf("content argument is required")
+	content, err := request.RequireString("content")
+	if err != nil {
+		return nil, err
 	}
 
 	// Create page payload
@@ -47,7 +46,7 @@ func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolReques
 	}
 
 	// Handle optional parent ID
-	if parentID, ok := request.Params.Arguments["parent_id"].(string); ok && parentID != "" {
+	if parentID := request.GetString("parent_id", ""); parentID != "" {
 		payload.Ancestors = []*models.ContentScheme{
 			{
 				ID: parentID,
@@ -93,5 +92,5 @@ func RegisterCreatePageTool(s *server.MCPServer) {
 		mcp.WithString("content", mcp.Required(), mcp.Description("Content of the page in storage format (XHTML)")),
 		mcp.WithString("parent_id", mcp.Description("ID of the parent page (optional)")),
 	)
-	s.AddTool(createPageTool, util.ErrorGuard(confluenceCreatePageHandler))
+	s.AddTool(createPageTool, confluenceCreatePageHandler)
 } 

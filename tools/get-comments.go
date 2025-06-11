@@ -7,7 +7,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/confluence-mcp/services"
-	"github.com/nguyenvanduocit/confluence-mcp/util"
 )
 
 // confluenceGetCommentsHandler handles retrieving comments for a Confluence page
@@ -15,32 +14,32 @@ func confluenceGetCommentsHandler(ctx context.Context, request mcp.CallToolReque
 	client := services.ConfluenceClient()
 
 	// Get page ID from arguments
-	pageID, ok := request.Params.Arguments["page_id"].(string)
-	if !ok {
-		return nil, fmt.Errorf("page_id argument is required")
+	pageID, err := request.RequireString("page_id")
+	if err != nil {
+		return nil, err
 	}
 
 	// Get optional parameters
 	expand := make([]string, 0)
-	if expandVal, ok := request.Params.Arguments["expand"].(string); ok && expandVal != "" {
+	if expandVal := request.GetString("expand", ""); expandVal != "" {
 		expand = append(expand, expandVal)
 	}
 
 	// Get optional location parameters
 	location := make([]string, 0)
-	if locationVal, ok := request.Params.Arguments["location"].(string); ok && locationVal != "" {
+	if locationVal := request.GetString("location", ""); locationVal != "" {
 		location = append(location, locationVal)
 	}
 
 	// Get optional pagination parameters
 	startAt := 0
-	if startAtVal, ok := request.Params.Arguments["start_at"].(float64); ok {
+	if startAtVal := request.GetInt("start_at", 0); startAtVal != 0 {
 		startAt = int(startAtVal)
 	}
 
 	maxResults := 50
-	if maxResultsVal, ok := request.Params.Arguments["max_results"].(float64); ok {
-		maxResults = int(maxResultsVal)
+	if maxResultsVal := request.GetInt("max_results", 50); maxResultsVal != 0 {
+		maxResults = maxResultsVal
 	}
 
 	// Get comments
@@ -98,5 +97,5 @@ func RegisterGetCommentsPageTool(s *server.MCPServer) {
 		mcp.WithNumber("start_at", mcp.Description("Starting index for pagination")),
 		mcp.WithNumber("max_results", mcp.Description("Maximum number of results to return (default: 50)")),
 	)
-	s.AddTool(tool, util.ErrorGuard(confluenceGetCommentsHandler))
+	s.AddTool(tool, confluenceGetCommentsHandler)
 } 

@@ -9,7 +9,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/confluence-mcp/services"
-	"github.com/nguyenvanduocit/confluence-mcp/util"
 )
 
 // confluenceUpdatePageHandler handles updating existing Confluence pages
@@ -17,9 +16,9 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 	client := services.ConfluenceClient()
 
 	// Extract required arguments
-	pageID, ok := request.Params.Arguments["page_id"].(string)
-	if !ok {
-		return nil, fmt.Errorf("page_id argument is required")
+	pageID, err := request.RequireString("page_id")
+	if err != nil {
+		return nil, err
 	}
 
 	// Get the latest version of the page
@@ -50,12 +49,12 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 	}
 
 	// Handle optional title update
-	if title, ok := request.Params.Arguments["title"].(string); ok && title != "" {
+	if title := request.GetString("title", ""); title != "" {
 		payload.Title = title
 	}
 
 	// Handle content update
-	if content, ok := request.Params.Arguments["content"].(string); ok && content != "" {
+	if content := request.GetString("content", ""); content != "" {
 		payload.Body = &models.BodyScheme{
 			Storage: &models.BodyNodeScheme{
 				Value:          content,
@@ -65,7 +64,7 @@ func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolReques
 	}
 
 	// Handle version number override
-	if versionStr, ok := request.Params.Arguments["version_number"].(string); ok && versionStr != "" {
+	if versionStr := request.GetString("version_number", ""); versionStr != "" {
 		version, err := strconv.Atoi(versionStr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid version_number: %v", err)
@@ -111,5 +110,5 @@ func RegisterUpdatePageTool(s *server.MCPServer) {
 		mcp.WithString("content", mcp.Description("New content of the page in storage format (XHTML)")),
 		mcp.WithString("version_number", mcp.Description("Version number for optimistic locking (optional)")),
 	)
-	s.AddTool(updatePageTool, util.ErrorGuard(confluenceUpdatePageHandler))
+	s.AddTool(updatePageTool, confluenceUpdatePageHandler)
 } 

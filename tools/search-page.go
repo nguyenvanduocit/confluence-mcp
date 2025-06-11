@@ -15,9 +15,9 @@ func confluenceSearchHandler(ctx context.Context, request mcp.CallToolRequest) (
 	client := services.ConfluenceClient()
 
 	// Get search query from arguments
-	query, ok := request.Params.Arguments["query"].(string)
-	if !ok {
-		return nil, fmt.Errorf("query argument is required")
+	query, err := request.RequireString("query")
+	if err != nil {
+		return nil, err
 	}
 	options := &models.SearchContentOptions{
 		Limit: 5,
