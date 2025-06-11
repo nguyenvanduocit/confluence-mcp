@@ -8,48 +8,51 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/confluence-mcp/services"
+	"gopkg.in/yaml.v3"
 )
 
-// confluenceCreatePageHandler handles the creation of new Confluence pages
-func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// CreatePageInput defines the input parameters for creating a Confluence page
+type CreatePageInput struct {
+	SpaceKey string `json:"space_key" validate:"required"`
+	Title    string `json:"title" validate:"required"`
+	Content  string `json:"content" validate:"required"`
+	ParentID string `json:"parent_id,omitempty"`
+}
+
+// CreatePageOutput defines the output structure for page creation results
+type CreatePageOutput struct {
+	Success       bool   `json:"success"`
+	Title         string `json:"title"`
+	ID            string `json:"id"`
+	Version       int    `json:"version"`
+	Link          string `json:"link"`
+	Message       string `json:"message"`
+}
+
+// confluenceCreatePageHandler handles the creation of new Confluence pages using typed input
+func confluenceCreatePageHandler(ctx context.Context, req mcp.CallToolRequest, input CreatePageInput) (*mcp.CallToolResult, error) {
 	client := services.ConfluenceClient()
-
-	// Extract required arguments
-	spaceKey, err := request.RequireString("space_key")
-	if err != nil {
-		return nil, err
-	}
-
-	title, err := request.RequireString("title")
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := request.RequireString("content")
-	if err != nil {
-		return nil, err
-	}
 
 	// Create page payload
 	payload := &models.ContentScheme{
 		Type:  "page",
-		Title: title,
+		Title: input.Title,
 		Space: &models.SpaceScheme{
-			Key: spaceKey,
+			Key: input.SpaceKey,
 		},
 		Body: &models.BodyScheme{
 			Storage: &models.BodyNodeScheme{
-				Value:          content,
+				Value:          input.Content,
 				Representation: "storage",
 			},
 		},
 	}
 
 	// Handle optional parent ID
-	if parentID := request.GetString("parent_id", ""); parentID != "" {
+	if input.ParentID != "" {
 		payload.Ancestors = []*models.ContentScheme{
 			{
-				ID: parentID,
+				ID: input.ParentID,
 			},
 		}
 	}
@@ -58,9 +61,9 @@ func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolReques
 	newPage, response, err := client.Content.Create(ctx, payload)
 	if err != nil {
 		if response != nil {
-			return nil, fmt.Errorf("failed to create page: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to create page: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)), nil
 		}
-		return nil, fmt.Errorf("failed to create page: %v", err)
+		return mcp.NewToolResultError(fmt.Sprintf("failed to create page: %v", err)), nil
 	}
 
 	var versionNumber int
@@ -74,14 +77,26 @@ func confluenceCreatePageHandler(ctx context.Context, request mcp.CallToolReques
 		selfLink = newPage.Links.Self
 	}
 
-	result := fmt.Sprintf("Page created successfully!\nTitle: %s\nID: %s\nVersion: %d\nLink: %s",
-		newPage.Title,
-		newPage.ID,
-		versionNumber,
-		selfLink,
-	)
+	output := CreatePageOutput{
+		Success: true,
+		Title:   newPage.Title,
+		ID:      newPage.ID,
+		Version: versionNumber,
+		Link:    selfLink,
+		Message: fmt.Sprintf("Page created successfully!\nTitle: %s\nID: %s\nVersion: %d\nLink: %s",
+			newPage.Title,
+			newPage.ID,
+			versionNumber,
+			selfLink,
+		),
+	}
 
-	return mcp.NewToolResultText(result), nil
+	jsonData, err := yaml.Marshal(output)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
+	}
+
+	return mcp.NewToolResultText(string(jsonData)), nil
 }
 
 func RegisterCreatePageTool(s *server.MCPServer) {
@@ -92,5 +107,5 @@ func RegisterCreatePageTool(s *server.MCPServer) {
 		mcp.WithString("content", mcp.Required(), mcp.Description("Content of the page in storage format (XHTML)")),
 		mcp.WithString("parent_id", mcp.Description("ID of the parent page (optional)")),
 	)
-	s.AddTool(createPageTool, confluenceCreatePageHandler)
+	s.AddTool(createPageTool, mcp.NewTypedToolHandler(confluenceCreatePageHandler))
 } 

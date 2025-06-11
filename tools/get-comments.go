@@ -7,87 +7,111 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/nguyenvanduocit/confluence-mcp/services"
+	"gopkg.in/yaml.v3"
 )
 
-// confluenceGetCommentsHandler handles retrieving comments for a Confluence page
-func confluenceGetCommentsHandler(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+// GetCommentsInput defines the input parameters for getting comments
+type GetCommentsInput struct {
+	PageID     string `json:"page_id" validate:"required"`
+	Expand     string `json:"expand,omitempty"`
+	Location   string `json:"location,omitempty"`
+	StartAt    int    `json:"start_at,omitempty"`
+	MaxResults int    `json:"max_results,omitempty"`
+}
+
+// GetCommentsOutput defines the output structure for comments
+type GetCommentsOutput struct {
+	PageID      string                   `json:"page_id"`
+	Comments    []CommentInfo           `json:"comments"`
+	TotalCount  int                     `json:"total_count"`
+	CurrentPage int                     `json:"current_page"`
+	Message     string                  `json:"message"`
+}
+
+// CommentInfo represents a single comment
+type CommentInfo struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Status      string `json:"status"`
+	Author      string `json:"author,omitempty"`
+	Created     string `json:"created,omitempty"`
+	Content     string `json:"content,omitempty"`
+}
+
+// confluenceGetCommentsTypedHandler handles retrieving comments for a Confluence page using typed approach
+func confluenceGetCommentsTypedHandler(ctx context.Context, req mcp.CallToolRequest, input GetCommentsInput) (*mcp.CallToolResult, error) {
 	client := services.ConfluenceClient()
 
-	// Get page ID from arguments
-	pageID, err := request.RequireString("page_id")
-	if err != nil {
-		return nil, err
+	// Set default values
+	if input.MaxResults == 0 {
+		input.MaxResults = 50
 	}
 
-	// Get optional parameters
+	// Prepare expand and location parameters
 	expand := make([]string, 0)
-	if expandVal := request.GetString("expand", ""); expandVal != "" {
-		expand = append(expand, expandVal)
+	if input.Expand != "" {
+		expand = append(expand, input.Expand)
 	}
 
-	// Get optional location parameters
 	location := make([]string, 0)
-	if locationVal := request.GetString("location", ""); locationVal != "" {
-		location = append(location, locationVal)
-	}
-
-	// Get optional pagination parameters
-	startAt := 0
-	if startAtVal := request.GetInt("start_at", 0); startAtVal != 0 {
-		startAt = int(startAtVal)
-	}
-
-	maxResults := 50
-	if maxResultsVal := request.GetInt("max_results", 50); maxResultsVal != 0 {
-		maxResults = maxResultsVal
+	if input.Location != "" {
+		location = append(location, input.Location)
 	}
 
 	// Get comments
-	comments, response, err := client.Content.Comment.Gets(ctx, pageID, expand, location, startAt, maxResults)
+	comments, response, err := client.Content.Comment.Gets(ctx, input.PageID, expand, location, input.StartAt, input.MaxResults)
 	if err != nil {
 		if response != nil {
-			return nil, fmt.Errorf("failed to get comments: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)
+			return mcp.NewToolResultError(fmt.Sprintf("failed to get comments: %s (endpoint: %s)", response.Bytes.String(), response.Endpoint)), nil
 		}
-		return nil, fmt.Errorf("failed to get comments: %v", err)
+		return mcp.NewToolResultError(fmt.Sprintf("failed to get comments: %v", err)), nil
 	}
 
-	// Format the result
-	result := fmt.Sprintf("Comments for page ID %s:\n\n", pageID)
+	// Convert to output format
+	output := GetCommentsOutput{
+		PageID:      input.PageID,
+		Comments:    make([]CommentInfo, 0, len(comments.Results)),
+		TotalCount:  comments.Size,
+		CurrentPage: (input.StartAt / input.MaxResults) + 1,
+	}
 
 	if len(comments.Results) == 0 {
-		result += "No comments found."
+		output.Message = "No comments found."
 	} else {
-		for i, comment := range comments.Results {
-			result += fmt.Sprintf("Comment #%d:\n", i+1)
-			result += fmt.Sprintf("ID: %s\n", comment.ID)
-			result += fmt.Sprintf("Title: %s\n", comment.Title)
-			result += fmt.Sprintf("Status: %s\n", comment.Status)
-			
+		for _, comment := range comments.Results {
+			commentInfo := CommentInfo{
+				ID:     comment.ID,
+				Title:  comment.Title,
+				Status: comment.Status,
+			}
+
 			// Add author info if available
 			if comment.Version != nil && comment.Version.By != nil {
-				result += fmt.Sprintf("Author: %s\n", comment.Version.By.DisplayName)
-				result += fmt.Sprintf("Created: %s\n", comment.Version.When)
+				commentInfo.Author = comment.Version.By.DisplayName
+				commentInfo.Created = comment.Version.When
 			}
-			
+
 			// Add comment body if available
 			if comment.Body != nil && comment.Body.View != nil {
-				result += fmt.Sprintf("Content: %s\n", comment.Body.View.Value)
+				commentInfo.Content = comment.Body.View.Value
 			}
-			
-			result += "----------------------------------------\n"
+
+			output.Comments = append(output.Comments, commentInfo)
 		}
-		
-		// Add pagination info
-		result += fmt.Sprintf("\nShowing %d of %d comments (page %d).", 
-			len(comments.Results), 
-			comments.Size,
-			(startAt/maxResults)+1)
+
+		output.Message = fmt.Sprintf("Found %d comments (page %d)", len(comments.Results), output.CurrentPage)
 	}
 
-	return mcp.NewToolResultText(result), nil
+	// Marshal to JSON
+	responseText, err := yaml.Marshal(output)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to marshal result: %v", err)), nil
+	}
+
+	return mcp.NewToolResultText(string(responseText)), nil
 }
 
-// RegisterGetCommentsPageTool registers the get_comments tool with the server
+// RegisterGetCommentsPageTool registers the get_comments tool with the server using typed handler
 func RegisterGetCommentsPageTool(s *server.MCPServer) {
 	tool := mcp.NewTool("get_comments",
 		mcp.WithDescription("Get comments from a Confluence page"),
@@ -97,5 +121,7 @@ func RegisterGetCommentsPageTool(s *server.MCPServer) {
 		mcp.WithNumber("start_at", mcp.Description("Starting index for pagination")),
 		mcp.WithNumber("max_results", mcp.Description("Maximum number of results to return (default: 50)")),
 	)
-	s.AddTool(tool, confluenceGetCommentsHandler)
+	
+	// Use typed tool handler
+	s.AddTool(tool, mcp.NewTypedToolHandler(confluenceGetCommentsTypedHandler))
 } 
