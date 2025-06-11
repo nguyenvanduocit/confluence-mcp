@@ -13,7 +13,7 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/confluence-mcp .
 
-# Expose port for SSE server (optional)
+# Expose port for HTTP server (optional)
 EXPOSE 8080
 
 ENTRYPOINT ["/app/confluence-mcp"]
