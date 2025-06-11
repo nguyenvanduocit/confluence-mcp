@@ -11,10 +11,12 @@ A Go-based Model Context Protocol (MCP) server for integrating AI assistants wit
 - Create new pages and spaces
 - Update existing pages
 - Manage page permissions and metadata
+- Get page comments
+- List spaces
 
 ## Installation
 
-There are several ways to install the Script Tool:
+There are several ways to install the Confluence MCP:
 
 ### Option 1: Download from GitHub Releases
 
@@ -33,7 +35,7 @@ There are several ways to install the Script Tool:
    ```
 
 ### Option 2: Go install
-```
+```bash
 go install github.com/nguyenvanduocit/confluence-mcp@latest
 ```
 
@@ -49,42 +51,49 @@ go install github.com/nguyenvanduocit/confluence-mcp@latest
    ```bash
    docker build -t confluence-mcp .
    ```
-   
-#### Environment Variables
+
+## Configuration
+
+### Environment Variables
 The following environment variables are required for authentication:
 ```
 ATLASSIAN_HOST=your_confluence_host
 ATLASSIAN_EMAIL=your_email
 ATLASSIAN_TOKEN=your_token
 ```
-You can set these directly in the Docker run command (recommended) or through a `.env` file (for local development).
 
-## Config
+You can set these directly in environment variables or through a `.env` file for local development.
 
-### Environment
+### Transport Methods
 
-1. Set up environment variables in `.env` file:
-```
-ATLASSIAN_HOST=your_atlassian_host
-ATLASSIAN_EMAIL=your_email
-ATLASSIAN_TOKEN=your_token
-```
+The Confluence MCP supports two transport methods:
 
-### Claude, cursor
-```
+#### 1. Standard I/O (stdio) - Default
+This is the default transport method used by most MCP clients like Claude Desktop and Cursor.
+
+#### 2. Streamable HTTP Server
+For HTTP-based integrations, you can run the server with HTTP transport using the `--http_port` flag.
+
+## Usage Examples
+
+### With Claude Desktop / Cursor (stdio transport)
+
+Add to your MCP configuration file:
+
+```json
 {
   "mcpServers": {
-    "script": {
-      "command": "/path-to/script-mcp",
-      "args": ["-env", "path-to-env-file"]
+    "confluence": {
+      "command": "/path/to/confluence-mcp",
+      "args": ["-env", "/path/to/.env"]
     }
   }
 }
 ```
 
-### Example: Run with Docker in mcpServers config
+### With Docker (stdio transport)
 
-```
+```json
 {
   "mcpServers": {
     "confluence": {
@@ -102,6 +111,36 @@ ATLASSIAN_TOKEN=your_token
   }
 }
 ```
+
+### With HTTP Transport
+
+For HTTP-based integrations, run the server with:
+
+```bash
+confluence-mcp --http_port 8080 --env .env
+```
+
+This will start the server at `http://localhost:8080/mcp`
+
+Or with Docker:
+
+```bash
+docker run -p 8080:8080 \
+  -e ATLASSIAN_HOST=your_confluence_instance.atlassian.net \
+  -e ATLASSIAN_EMAIL=your_email@example.com \
+  -e ATLASSIAN_TOKEN=your_atlassian_api_token \
+  ghcr.io/nguyenvanduocit/confluence-mcp:latest \
+  --http_port 8080
+```
+
+## Available Tools
+
+- `search_page` - Search pages in Confluence using CQL
+- `get_page` - Get Confluence page content and metadata
+- `create_page` - Create new Confluence pages
+- `update_page` - Update existing Confluence pages
+- `get_comments` - Get comments from a Confluence page
+- `list_spaces` - List Confluence spaces
 
 ## Contributing
 
