@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.0](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.4.0...v1.5.0) (2025-10-02)
+
+
+### Features
+
+* **readme:** enhance README with detailed project description and add thumbnail image ([6355d0b](https://github.com/nguyenvanduocit/confluence-mcp/commit/6355d0b0cbe9268c7fd0c263f6b61da4299f6ff5))
+* remove sse, and support streamableHttpServer ([1de5c16](https://github.com/nguyenvanduocit/confluence-mcp/commit/1de5c168813f2b18e58d6f061949d416d38b57c8))
+
+
+### Bug Fixes
+
+* **core:** improve error handling for Confluence client initialization ([f19d8cb](https://github.com/nguyenvanduocit/confluence-mcp/commit/f19d8cb67dfed6d525e3451b437a9ad310efa67f))
+
 ## [1.4.0](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.3.0...v1.4.0) (2025-04-18)
 
 
