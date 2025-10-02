@@ -34,7 +34,10 @@ type SpaceInfo struct {
 
 // confluenceListSpacesHandler handles listing all Confluence spaces
 func confluenceListSpacesHandler(ctx context.Context, request mcp.CallToolRequest, input ListSpacesInput) (*mcp.CallToolResult, error) {
-    client := services.ConfluenceClient()
+    client, err := services.ConfluenceClient()
+    if err != nil {
+        return mcp.NewToolResultError(fmt.Sprintf("failed to initialize Confluence client: %v", err)), nil
+    }
 
     // Fetch spaces – default options, first 100 results
     spaces, response, err := client.Space.Gets(ctx, nil, 0, 100)

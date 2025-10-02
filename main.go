@@ -73,7 +73,9 @@ func main() {
 				log.Println("Stopping Streamable HTTP server")
 				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				defer cancel()
-				streamableHttpServer.Shutdown(ctx)
+				if err := streamableHttpServer.Shutdown(ctx); err != nil {
+					log.Printf("Error shutting down HTTP server: %v", err)
+				}
 			}
 			
 			if err := streamableHttpServer.Start(fmt.Sprintf(":%s", *streamableHttpPort)); err != nil {

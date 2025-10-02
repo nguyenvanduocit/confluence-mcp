@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -9,27 +10,51 @@ import (
 	"github.com/pkg/errors"
 )
 
-func loadAtlassianCredentials() (host, mail, token string) {
+var (
+	clientOnce sync.Once
+	client     *confluence.Client
+	clientErr  error
+)
+
+func loadAtlassianCredentials() (host, mail, token string, err error) {
 	host = os.Getenv("ATLASSIAN_HOST")
 	mail = os.Getenv("ATLASSIAN_EMAIL")
 	token = os.Getenv("ATLASSIAN_TOKEN")
 
 	if host == "" || mail == "" || token == "" {
-		log.Fatal("ATLASSIAN_HOST, ATLASSIAN_EMAIL, ATLASSIAN_TOKEN are required, please set it in MCP Config")
+		return "", "", "", fmt.Errorf("ATLASSIAN_HOST, ATLASSIAN_EMAIL, ATLASSIAN_TOKEN are required environment variables")
 	}
 
-	return host, mail, token
+	return host, mail, token, nil
 }
-var ConfluenceClient = sync.OnceValue[*confluence.Client](func() *confluence.Client {
-	host, mail, token := loadAtlassianCredentials()
 
-	instance, err := confluence.New(nil, host)
-	if err != nil {
-		log.Fatal(errors.WithMessage(err, "failed to create confluence client"))
+func ConfluenceClient() (*confluence.Client, error) {
+	clientOnce.Do(func() {
+		host, mail, token, err := loadAtlassianCredentials()
+		if err != nil {
+			clientErr = err
+			log.Printf("Failed to load Atlassian credentials: %v", err)
+			return
+		}
+
+		instance, err := confluence.New(nil, host)
+		if err != nil {
+			clientErr = errors.WithMessage(err, "failed to create confluence client")
+			log.Printf("Failed to create Confluence client: %v", clientErr)
+			return
+		}
+
+		instance.Auth.SetBasicAuth(mail, token)
+		client = instance
+	})
+
+	if clientErr != nil {
+		return nil, clientErr
+	}
+	if client == nil {
+		return nil, fmt.Errorf("confluence client is not initialized")
 	}
 
-	instance.Auth.SetBasicAuth(mail, token)
-
-	return instance
-})
+	return client, nil
+}
 

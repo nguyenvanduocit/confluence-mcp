@@ -36,7 +36,10 @@ type SearchResult struct {
 
 // confluenceSearchHandler is a handler for the confluence search tool
 func confluenceSearchHandler(ctx context.Context, request mcp.CallToolRequest, input SearchPageInput) (*mcp.CallToolResult, error) {
-	client := services.ConfluenceClient()
+	client, err := services.ConfluenceClient()
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to initialize Confluence client: %v", err)), nil
+	}
 
 	options := &models.SearchContentOptions{
 		Limit: 5,

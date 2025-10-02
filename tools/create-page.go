@@ -31,7 +31,10 @@ type CreatePageOutput struct {
 
 // confluenceCreatePageHandler handles the creation of new Confluence pages using typed input
 func confluenceCreatePageHandler(ctx context.Context, req mcp.CallToolRequest, input CreatePageInput) (*mcp.CallToolResult, error) {
-	client := services.ConfluenceClient()
+	client, err := services.ConfluenceClient()
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to initialize Confluence client: %v", err)), nil
+	}
 
 	// Create page payload
 	payload := &models.ContentScheme{

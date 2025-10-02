@@ -32,7 +32,10 @@ type UpdatePageOutput struct {
 
 // confluenceUpdatePageHandler handles updating existing Confluence pages
 func confluenceUpdatePageHandler(ctx context.Context, request mcp.CallToolRequest, input UpdatePageInput) (*mcp.CallToolResult, error) {
-	client := services.ConfluenceClient()
+	client, err := services.ConfluenceClient()
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to initialize Confluence client: %v", err)), nil
+	}
 
 	// Get the latest version of the page
 	currentPage, response, err := client.Content.Get(ctx, input.PageID, []string{"version"}, 0)
