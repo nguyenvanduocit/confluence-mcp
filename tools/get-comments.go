@@ -40,7 +40,10 @@ type CommentInfo struct {
 
 // confluenceGetCommentsTypedHandler handles retrieving comments for a Confluence page using typed approach
 func confluenceGetCommentsTypedHandler(ctx context.Context, req mcp.CallToolRequest, input GetCommentsInput) (*mcp.CallToolResult, error) {
-	client := services.ConfluenceClient()
+	client, err := services.ConfluenceClient()
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to initialize Confluence client: %v", err)), nil
+	}
 
 	// Set default values
 	if input.MaxResults == 0 {
