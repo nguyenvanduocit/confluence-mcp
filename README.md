@@ -142,6 +142,71 @@ docker run -p 8080:8080 \
 - `get_comments` - Get comments from a Confluence page
 - `list_spaces` - List Confluence spaces
 
+## CLI Usage
+
+In addition to the MCP server, `confluence-mcp` ships a standalone CLI binary (`confluence-cli`) for direct terminal use — no MCP client needed.
+
+### Installation
+
+```bash
+# Build locally
+just install-cli
+
+# Or with Go
+go install github.com/nguyenvanduocit/confluence-mcp/cmd/cli@latest
+```
+
+### Quick Start
+
+```bash
+# Set credentials
+export ATLASSIAN_HOST=your-instance.atlassian.net
+export ATLASSIAN_EMAIL=you@example.com
+export ATLASSIAN_TOKEN=your-api-token
+
+# Or use a .env file
+confluence-cli --env .env <command> [flags]
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `search-page` | Search pages using CQL |
+| `get-page` | Get page content and metadata |
+| `create-page` | Create a new page |
+| `update-page` | Update an existing page |
+| `get-comments` | Get comments on a page |
+| `list-spaces` | List all Confluence spaces |
+
+### Examples
+
+```bash
+# Search pages
+confluence-cli search-page --query "space = DEV AND type = page"
+
+# Get a page
+confluence-cli get-page --id 123456
+
+# Create a page
+confluence-cli create-page --space DEV --title "My Page" --content "Hello World"
+
+# Update a page
+confluence-cli update-page --id 123456 --title "Updated Title" --content "New content"
+
+# List spaces
+confluence-cli list-spaces
+
+# JSON output (pipe-friendly)
+confluence-cli search-page --query "space = DEV" --output json | jq '.results[].title'
+```
+
+### Flags
+
+Every command accepts:
+- `--env string` — Path to `.env` file
+- `--output string` — Output format: `text` (default) or `json`
+
 ## Contributing
 
 1. Fork the repository

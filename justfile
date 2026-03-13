@@ -1,6 +1,12 @@
 build:
   CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/confluence-mcp ./main.go
 
+build-cli:
+  CGO_ENABLED=0 go build -ldflags="-s -w" -o ./bin/confluence-cli ./cmd/cli/
+
+install-cli:
+  go install ./cmd/cli/
+
 dev:
   go run main.go --env .env --http_port 3003
 
