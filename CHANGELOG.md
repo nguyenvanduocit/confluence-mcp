@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.0.0...v1.0.1) (2026-03-13)
+
+
+### Bug Fixes
+
+* use merge instead of squash to preserve commit SHAs for release-please ([f26b66f](https://github.com/nguyenvanduocit/confluence-mcp/commit/f26b66f2e5f24e5f13d72afe1b01b90c2b26cd9b))
+
 ## 1.0.0 (2026-03-13)
 
 
