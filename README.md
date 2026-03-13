@@ -153,7 +153,7 @@ In addition to the MCP server, `confluence-mcp` ships a standalone CLI binary (`
 just install-cli
 
 # Or with Go
-go install github.com/nguyenvanduocit/confluence-mcp/cmd/cli@latest
+go install github.com/nguyenvanduocit/confluence-mcp/cmd/confluence-cli@latest
 ```
 
 ### Quick Start
