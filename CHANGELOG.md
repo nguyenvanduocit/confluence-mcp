@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.0.1...v1.0.2) (2026-03-13)
+
+
+### Bug Fixes
+
+* checkout tagged commit in goreleaser to fix tag mismatch ([50f6561](https://github.com/nguyenvanduocit/confluence-mcp/commit/50f6561e5b6cf9c82d2ee6c1cf101b5e2f420712))
+
 ## [1.0.1](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.0.0...v1.0.1) (2026-03-13)
 
 
