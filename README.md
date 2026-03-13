@@ -218,3 +218,11 @@ Every command accepts:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Installation
+
+### Homebrew (macOS/Linux)
+
+```bash
+brew install nguyenvanduocit/tap/confluence-mcp
+```
