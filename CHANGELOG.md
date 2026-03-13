@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.0.2...v1.0.3) (2026-03-13)
+
+
+### Bug Fixes
+
+* add explicit archive IDs for homebrew brew formula ([c210e77](https://github.com/nguyenvanduocit/confluence-mcp/commit/c210e7782aae17300d511874649b39dacbd4d4df))
+
 ## [1.0.2](https://github.com/nguyenvanduocit/confluence-mcp/compare/v1.0.1...v1.0.2) (2026-03-13)
 
 
